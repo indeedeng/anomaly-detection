@@ -1,6 +1,6 @@
 import numpy as np
 import statsmodels.tsa.seasonal as seasonal
-from PyAstronomy import pyasl
+from rpy2 import robjects
 from scipy.stats import t
 from pandas import Series
 
@@ -13,16 +13,23 @@ def detect_anoms(x, peroid, max_anoms=0.10, alpha=0.05, direction='both',
     for period_end in xrange(len(x), 0, -longterm_period):
         period_start = max(0, period_end - longterm_period)
         period_x = x[period_start:period_end]
-        stl_res = seasonal.seasonal_decompose(period_x, freq=peroid)
-        seasons = stl_res.seasonal
+        seasons = _stl(period_x, peroid)
         median = np.median(period_x)
         resid = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
         max_anom_num = max(1, int(len(period_x) * max_anoms))
         anom_index = _esd(resid, max_anom_num, alpha, direction=direction)
         for anom_i in anom_index:
             ret.append(period_start + anom_i)
-    return ret
+    return sorted(ret)
 
+def _stl(x, period):
+    f = robjects.r("""
+    f <- function(x, period) {
+        ret <- stl(ts(x, frequency = period), s.window = "periodic", robust = TRUE)
+        ret$time.series[,"seasonal"]
+    }
+    """)
+    return f(x, period)
 
 def _esd(x, max_outlier, alpha, direction='both'):
     x = Series(x)
@@ -30,7 +37,7 @@ def _esd(x, max_outlier, alpha, direction='both'):
     outlier_index = []
     for i in range(1, max_outlier + 1):
         median = x.median()
-        mad = np.median([abs(value - median) for value in x])
+        mad = np.median([abs(value - median) for value in x]) * 1.4826
         if mad == 0:
             break
         if direction == 'both':
