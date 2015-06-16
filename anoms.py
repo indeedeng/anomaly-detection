@@ -1,28 +1,19 @@
 import numpy as np
-import statsmodels.tsa.seasonal as seasonal
-try:
-    from rpy2 import robjects
-    _R_SUPPORT = True
-except ImportError:
-    _R_SUPPORT = False
+from pyloess import stl
 from scipy.stats import t
 from pandas import Series
 
 
-def detect_anoms(x, peroid, max_anoms=0.10, alpha=0.05, direction='both',
-                 longterm_period=None, use_r_stl=False):
-    if use_r_stl and not _R_SUPPORT:
-        raise ValueError("rpy2 not installed, can not use R stl() function.")
+def detect_anoms(x, peroid, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None):
     if longterm_period is None:
         longterm_period = len(x)
     ret = []
     for period_end in xrange(len(x), 0, -longterm_period):
         period_start = max(0, period_end - longterm_period)
         period_x = x[period_start:period_end]
-        if use_r_stl:
-            seasons = _stl(period_x, peroid)
-        else:
-            seasons = seasonal.seasonal_decompose(period_x, freq=peroid).seasonal
+        # parameters are copied from R's stl()
+        stl_ret = stl(period_x, np=peroid, ns=len(period_x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
+        seasons = stl_ret['seasonal']
         median = np.median(period_x)
         resid = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
         max_anom_num = max(1, int(len(period_x) * max_anoms))
@@ -30,15 +21,6 @@ def detect_anoms(x, peroid, max_anoms=0.10, alpha=0.05, direction='both',
         for anom_i in anom_index:
             ret.append(period_start + anom_i)
     return sorted(ret)
-
-def _stl(x, period):
-    f = robjects.r("""
-    f <- function(x, period) {
-        ret <- stl(ts(x, frequency = period), s.window = "periodic", robust = TRUE)
-        ret$time.series[,"seasonal"]
-    }
-    """)
-    return f(x, period)
 
 
 _MAD_CONSTANT = 1.4826  # a magic number copied from R's mad() function
