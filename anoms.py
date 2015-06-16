@@ -4,22 +4,41 @@ from scipy.stats import t
 from pandas import Series
 
 
-def detect_anoms(x, peroid, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None):
+def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None, only_last=False,
+                 threshold=None):
     if longterm_period is None:
         longterm_period = len(x)
-    ret = []
-    for period_end in xrange(len(x), 0, -longterm_period):
-        period_start = max(0, period_end - longterm_period)
+    ret = set()
+    for period_start in xrange(0, len(x), longterm_period):
+        period_end = min(len(x), period_start + longterm_period)
+        if only_last and period_end < len(x):
+            continue
+        if period_end - period_start < longterm_period:
+            period_start = period_end - longterm_period
         period_x = x[period_start:period_end]
         # parameters are copied from R's stl()
-        stl_ret = stl(period_x, np=peroid, ns=len(period_x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
+        stl_ret = stl(period_x, np=period, ns=len(period_x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
         seasons = stl_ret['seasonal']
         median = np.median(period_x)
         resid = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
         max_anom_num = max(1, int(len(period_x) * max_anoms))
         anom_index = _esd(resid, max_anom_num, alpha, direction=direction)
         for anom_i in anom_index:
-            ret.append(period_start + anom_i)
+            ret.add(period_start + anom_i)
+        if threshold:
+            period_maxs = []
+            for i in xrange(0, len(period_x), period):
+                period_maxs.append(max(period_x[i: min(len(period_x), i + period)]))
+            if threshold == 'med_max':
+                thresh = np.median(period_maxs)
+            elif threshold == 'p95':
+                thresh = np.percentile(period_maxs, 95)
+            elif threshold == 'p99':
+                thresh = np.percentile(period_maxs, 99)
+            ret = filter(lambda index: x[index] >= thresh, ret)
+        if only_last:
+            last_period_start = len(x) - period
+            ret = filter(lambda value: value > last_period_start, ret)
     return sorted(ret)
 
 
