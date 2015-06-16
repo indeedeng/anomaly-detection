@@ -141,3 +141,8 @@ class TestDetectAnoms(unittest.TestCase):
                                        only_last=True, e_value=True)
         self.assertListEqual(expected_index, index)
         self.assertListEqual(expected_e_values, e_values)
+
+    def test_illegal_parameters(self):
+        self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, max_anoms=0.5)
+        self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, max_anoms=0)
+        self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, alpha=0)

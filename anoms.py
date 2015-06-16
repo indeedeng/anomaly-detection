@@ -10,6 +10,30 @@ logger = logging.getLogger('indeed.anoms')
 
 def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None, only_last=False,
                  threshold=None, e_value=False):
+    """
+    Anomaly Detection Using Seasonal Hybrid ESD Test.
+    :param x: a list of floats, which consists of the observations.
+    :param period: int, the number of observations in a single period.
+    :param max_anoms: float in (0, 0.49]. Maximum number of anomalies that S-H-ESD will detect as a percentage of the
+                                          data
+    :param alpha: float. The level of statistical significance with which to accept or reject anomalies.
+    :param direction: string. Directionality of the anomalies to be detected. Options are: 'pos', 'neg', 'both'.
+                              'pos' only reports positive going anomalies, 'neg' only reports negative going anomalies,
+                              'both' report anomalies on both direction,
+    :param longterm_period: int. Split x into lists of given size, and perform anomaly detection on them
+                            individually.
+    :param only_last: boolean. Find and report anomalies only within the last period in the time series.
+    :param threshold: string. Only report positive going anomalies above the threshold specified.
+                     Options are: None, 'med_max', 'p95' and 'p99'.
+    :param e_value: boolean. Returns an additional list containing the expected value.
+    :return: a list of int, consists of the index of the anomalies in x.
+             If e_value is set to True, a list of float is returned as the second return value, which consists the
+             expected values of each detected anomaly.
+    """
+    if max_anoms > 0.49 or max_anoms <= 0:
+        raise ValueError("max_anoms must be >0 and <= 0.49")
+    if alpha <= 0:
+        raise ValueError("alpah must greater than 0.")
     if longterm_period is None:
         longterm_period = len(x)
     ret = set()
@@ -30,21 +54,28 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
                 logger.debug("The last longterm period doesn't contain enough length of data. "
                              "Adjusted the starting index. period_start=%s, period_end=%s" % (period_start, period_end))
         period_x = x[period_start:period_end]
+
+        # The core part of anomaly detection:
+        # 1. Use STL to perform seasonal decomposition.
         # parameters are copied from R's stl()
         stl_ret = stl(period_x, np=period, ns=len(period_x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
+        # 2. Calculate residuals using seasonal from STL result and median as the trends.
         seasons = stl_ret['seasonal']
-        if e_value:
+        if e_value:  # store the expected values if e_value is set
             trends = stl_ret['trend']
             for i in range(0, len(period_x)):
                 if e_values[period_start + i] is None:
                     e_values[period_start + i] = floor(seasons[i] + trends[i])
         median = np.median(period_x)
-        resid = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
+        residuals = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
+        # 3. Use ESD to find out outliers from residuals. These outliers' corresponding values in x are the anomalies
         max_anom_num = max(1, int(len(period_x) * max_anoms))
-        anom_index = _esd(resid, max_anom_num, alpha, direction=direction)
+        anom_index = _esd(residuals, max_anom_num, alpha, direction=direction)
         for anom_i in anom_index:
-            ret.add(period_start + anom_i)
+            ret.add(period_start + anom_i)  # convert the index to the index in x
+        # Post processing. Filter out some detected anomalies according to the parameters.
         if threshold:
+            # The threshold is calculated from the max values of each period.
             period_maxs = []
             for i in xrange(0, len(period_x), period):
                 period_maxs.append(max(period_x[i: min(len(period_x), i + period)]))
@@ -72,7 +103,10 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
 _MAD_CONSTANT = 1.4826  # a magic number copied from R's mad() function
 
 
-def _esd(x, max_outlier, alpha, direction='both'):
+def _esd(x, max_outlier, alpha, direction):
+    """
+    The ESD test using median and MAD in the calculation of the test statistic.
+    """
     x = Series(x)
     n = len(x)
     outlier_index = []
@@ -100,7 +134,9 @@ def _esd(x, max_outlier, alpha, direction='both'):
                          (i, max_outlier, median, mad, r_idx, r, crit, lam))
         if r > lam:
             outlier_index.append(r_idx)
-            x.drop(r_idx, inplace=True)
+            x = x.drop(r_idx)
         else:
+            # The r keeps decreasing while lam keeps increasing. Therefore, when r is less than lam for the first time,
+            # we can stop.
             break
     return outlier_index
