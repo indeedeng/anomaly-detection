@@ -146,3 +146,4 @@ class TestDetectAnoms(unittest.TestCase):
         self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, max_anoms=0.5)
         self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, max_anoms=0)
         self.assertRaises(ValueError, detect_anoms, [1] * 1000, 14, alpha=0)
+        self.assertRaises(ValueError, detect_anoms, [1] * 27, 14)  # time series' length is less than period * 2.

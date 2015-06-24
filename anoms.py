@@ -54,7 +54,8 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
                 logger.debug("The last longterm period doesn't contain enough length of data. "
                              "Adjusted the starting index. period_start=%s, period_end=%s" % (period_start, period_end))
         period_x = x[period_start:period_end]
-
+        if len(period_x) < period * 2:
+            raise ValueError("Anom detection needs at least 2 periods worth of data.")
         # The core part of anomaly detection:
         # 1. Use STL to perform seasonal decomposition.
         # parameters are copied from R's stl()
