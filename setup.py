@@ -14,7 +14,7 @@ except ImportError:
 
 setup(
     name="anomaly-detection",
-    version="0.0.1-rc",
+    version="0.0.1",
     description="A python implementation of https://github.com/twitter/AnomalyDetection",
     packages=find_packages(exclude=['tests.*']),
     install_requires=[
