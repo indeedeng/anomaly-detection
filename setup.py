@@ -13,7 +13,7 @@ except ImportError:
     pip.main(['install', 'numpy>=1.9.2'])
 
 setup(
-    name="Indeed-AnomalyDetection",
+    name="anomaly-detection",
     version="0.0.1-rc",
     description="A python implementation of https://github.com/twitter/AnomalyDetection",
     packages=find_packages(exclude=['tests.*']),
