@@ -36,6 +36,9 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
         raise ValueError("alpah must greater than 0.")
     if longterm_period is None:
         longterm_period = len(x)
+    for v in x:
+        if np.isnan(v):
+            raise ValueError("data contains NaN value.")
     ret = set()
     if e_value:
         e_values = [None] * len(x)  # To keep the expected values when e_value is set.
