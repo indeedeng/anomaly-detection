@@ -1,5 +1,5 @@
 import os
-from setuptools import setup
+from setuptools import setup, Extension
 
 
 def read(fname):
@@ -11,6 +11,15 @@ try:
 except ImportError:
     import pip
     pip.main(['install', 'numpy>=1.9.2'])
+
+
+_CPP_PATH = './src/'
+sources = []
+for filename in ['edm-multi.cpp', 'edm-per.cpp', 'edmTail.cpp', 'edmx.cpp', 'helper.cpp']:
+    source_file = _CPP_PATH + filename
+    sources.append(_CPP_PATH + filename)
+
+module = Extension('edm', sources=sources)
 
 setup(
     name="anomaly-detection",
@@ -27,4 +36,5 @@ setup(
         'https://github.com/andreas-h/pyloess/tarball/7415090e00c3987eecc44be2efcfbdaf038656e0#egg=pyloess-0.0.0'
     ],
     long_description=read('README.md'),
+    ext_modules=[module]
 )
