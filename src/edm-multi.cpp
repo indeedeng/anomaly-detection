@@ -1,5 +1,5 @@
-#include<vector>
 #include<set>
+#include<vector>
 #include<algorithm>
 #include<cmath>
 #include"helper.h"
@@ -11,7 +11,7 @@ using namespace std;
 //beta: penalization term for the addition of a change point
 
 // [[Rcpp::export]]
-int*  EDM_multi(const vector<double>& Z, int min_size=24, double beta=0, int degree=0){
+extern "C" vector<int> EDM_multi(const vector<double>& Z, int min_size=24, double beta=0, int degree=0){
 
 	//identify which type of penalization to use
 	double (*G)(double);
@@ -88,9 +88,5 @@ int*  EDM_multi(const vector<double>& Z, int min_size=24, double beta=0, int deg
 		at = prev[at];
 	}
 	sort(ret.begin(),ret.end());
-
-	int *output;
-	output = new int[ret.size()];
-	copy(ret.begin(), ret.end(), output);
-	return output;
+	return ret;
 }

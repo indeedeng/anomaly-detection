@@ -6,6 +6,7 @@ This version calculates the between distance using the delta points around the c
 #include<algorithm>
 #include<iostream>
 #include<vector>
+#include"helper.h"
 
 using namespace std;
 
@@ -90,7 +91,7 @@ vector<int> AddToTree(int B, vector<double>& x){
 }
 
 // [[Rcpp::export]]
-int* EDM_tail(vector<double>& Z, int min_size=24, double alpha=2, double quant=0.5){
+extern "C" EDMResult EDM_tail(vector<double>& Z, int min_size=24, double alpha=2, double quant=0.5){
 
 	int N = Z.size();
 	int eps = (int)std::ceil( std::log(N) );
@@ -183,14 +184,7 @@ int* EDM_tail(vector<double>& Z, int min_size=24, double alpha=2, double quant=0
 		}
 		forward_move = !forward_move;
 	}
-	
-	//return statment for debugging
-	//return List::create(_["loc"]=info.best_loc, _["tail"]=info.best_t2, _["stat"]=info.best_stat);
-	int *output;
-	output = new int[2];
-	output[0] = info.best_loc;
-	output[1] = info.best_stat;
-	return output;
+	return EDMResult(info.best_loc, info.best_stat);
 }
 
 void ForwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant, double alpha){

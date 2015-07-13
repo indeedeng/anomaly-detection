@@ -1,7 +1,7 @@
 #include<set>
 #include<algorithm>
 #include<cmath>
-
+#include"helper.h"
 using namespace std;
 
 extern double Linear(double x){ return 1;}
@@ -72,4 +72,9 @@ extern void remove_element(multiset<double>& m, multiset<double, std::greater<do
 		m.insert(*i);
 		M.erase(M.begin());
 	}
+}
+
+EDMResult::EDMResult(int best_loc, double best_stat) {
+	this->best_loc = best_loc;
+	this->best_stat = best_stat;
 }

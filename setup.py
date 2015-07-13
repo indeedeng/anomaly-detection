@@ -15,7 +15,7 @@ except ImportError:
 
 _CPP_PATH = './src/'
 sources = []
-for filename in ['edm-multi.cpp', 'edm-per.cpp', 'edmTail.cpp', 'edmx.cpp', 'helper.cpp']:
+for filename in ['pywrapper.cpp', 'edm-multi.cpp', 'edm-per.cpp', 'edmTail.cpp', 'edmx.cpp', 'helper.cpp']:
     source_file = _CPP_PATH + filename
     sources.append(_CPP_PATH + filename)
 

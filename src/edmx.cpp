@@ -9,6 +9,7 @@ Instead of calculating mean(X) we calculate median(X), and similarly for Y
 #include<vector>
 #include<queue>
 #include<cmath>
+#include"helper.h"
 
 
 void AddToHeaps(std::priority_queue<double, std::vector<double>, std::greater<double> >& m,
@@ -37,7 +38,7 @@ double Median(const std::vector<double>& Z, int a, int b){
 }
 
 // [[Rcpp::export]]
-int* EDMX(const std::vector<double>& Z, int min_size = 24, double alpha=2){
+extern "C" EDMResult EDMX(const std::vector<double>& Z, int min_size = 24, double alpha=2){
 
 	alpha = 2; //Not used, just here for uniform funciton signature
 
@@ -74,14 +75,7 @@ int* EDMX(const std::vector<double>& Z, int min_size = 24, double alpha=2){
 			}
 		}
 	}
-	
-	//return statment for debugging
-	//return List::create(_["loc"]=t1, _["tail"]=t2, _["stat"]=stat_best);
-	int *output;
-	output = new int[2];
-	output[0] = t1;
-	output[1] = stat_best;
-	return output;
+	return EDMResult(t1, stat_best);
 }
 
 // Use 2 heaps to keep track of the median (can also be adjusted for other quantiles). One heap 

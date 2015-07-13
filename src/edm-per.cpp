@@ -13,7 +13,7 @@
 using namespace std;
 
 // [[Rcpp::export]]
-int* EDM_percent(const vector<double>& Z, int min_size=24, double percent=0, int degree=0){
+extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size=24, double percent=0, int degree=0){
 //Z: time series
 //min_size: minimum segment size
 //beta: penalization term for the addition of a change point
@@ -100,8 +100,5 @@ int* EDM_percent(const vector<double>& Z, int min_size=24, double percent=0, int
 		at = prev[at];
 	}
 	sort(ret.begin(),ret.end());
-	int *output;
-	output = new int[ret.size()];
-	copy(ret.begin(), ret.end(), output);
-	return output;
+	return ret;
 }

@@ -15,4 +15,11 @@ extern double Linear(double x);
 extern double Const(double x);
 extern double Quadratic(double x);
 
+class EDMResult {
+public:
+    int best_loc;
+    double best_stat;
+    EDMResult(int, double);
+};
+
 #endif
