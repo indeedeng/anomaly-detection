@@ -1,6 +1,5 @@
 #include<Python.h>
 #include<vector>
-#include<iostream>
 #include"edm-multi.h"
 #include"edm-per.h"
 #include"edmTail.h"
