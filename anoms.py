@@ -3,13 +3,14 @@ from pyloess import stl
 from scipy.stats import t
 from pandas import Series
 from math import floor
+from breakout import detect_breakout
 import logging
 
 logger = logging.getLogger('indeed.anoms')
 
 
-def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None, only_last=False,
-                 threshold=None, e_value=False):
+def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longterm_period=None, only_last=None,
+                 threshold=None, e_value=False, breakout_kwargs=None):
     """
     Anomaly Detection Using Seasonal Hybrid ESD Test.
     :param x: a list of floats, which consists of the observations.
@@ -22,10 +23,11 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
                               'both' report anomalies on both direction,
     :param longterm_period: int. Split x into lists of given size, and perform anomaly detection on them
                             individually.
-    :param only_last: boolean. Find and report anomalies only within the last period in the time series.
+    :param only_last: int. Find and report anomalies only within a length in the tail of the time series.
     :param threshold: string. Only report positive going anomalies above the threshold specified.
                      Options are: None, 'med_max', 'p95' and 'p99'.
     :param e_value: boolean. Returns an additional list containing the expected value.
+    :param breakout_kwargs: dict. If given, use it as parameter to call breakout detection to improve the trends.
     :return: a list of int, consists of the index of the anomalies in x.
              If e_value is set to True, a list of float is returned as the second return value, which consists the
              expected values of each detected anomaly.
@@ -47,10 +49,6 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("Start to process longterm period: period_start=%s, period_end=%s" %
                          (period_start, period_end))
-        if only_last and period_end < len(x):
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("only_last is True. Skip longterm periods before the last one.")
-            continue
         if period_end - period_start < longterm_period:
             period_start = period_end - longterm_period
             if logger.isEnabledFor(logging.DEBUG):
@@ -70,8 +68,11 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
             for i in range(0, len(period_x)):
                 if e_values[period_start + i] is None:
                     e_values[period_start + i] = floor(seasons[i] + trends[i])
-        median = np.median(period_x)
-        residuals = [period_x[i] - seasons[i] - median for i in range(0, len(period_x))]
+        if breakout_kwargs:
+            trends = _get_trends_by_breakout_detection(x, breakout_kwargs)
+        else:
+            trends = _get_trends_by_median(period_x)
+        residuals = [period_x[i] - seasons[i] - trends[i] for i in range(0, len(period_x))]
         # 3. Use ESD to find out outliers from residuals. These outliers' corresponding values in x are the anomalies
         max_anom_num = max(1, int(len(period_x) * max_anoms))
         anom_index = _esd(residuals, max_anom_num, alpha, direction=direction)
@@ -93,16 +94,38 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
                 logger.debug("threshold is True. threshold=%s, thresh=%s" % (threshold, thresh))
             ret = set(filter(lambda index: x[index] >= thresh, ret))
         if only_last:
-            last_period_start = len(x) - period
+            last_period_start = len(x) - only_last
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("only_last is True. Will remove all anomalies before index %s." % last_period_start)
-            ret = set(filter(lambda value: value > last_period_start, ret))
+            ret = set(filter(lambda value: value >= last_period_start, ret))
     ret = sorted(ret)
     if e_value:
         return ret, map(lambda i: e_values[i], ret)
     else:
         return ret
 
+
+def _get_trends_by_median(x):
+    median = np.median(x)
+    return [median] * len(x)
+
+
+def _get_trends_by_breakout_detection(x, kwargs):
+    ret_list = detect_breakout(x, **kwargs)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("detect_breakout result: %s" % ret_list)
+    last_loc = len(x)
+    if last_loc not in ret_list:
+        ret_list.append(last_loc)
+    prev_loc = 0
+    trends = []
+    for loc in ret_list:
+        median = np.median(x[prev_loc:loc])
+        trends.extend([median] * (loc - prev_loc))
+        prev_loc = loc
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("detect_breakout trends: %s length=%s" % (trends, len(trends)))
+    return trends
 
 _MAD_CONSTANT = 1.4826  # a magic number copied from R's mad() function
 

@@ -82,7 +82,7 @@ class TestDetectAnoms(unittest.TestCase):
         """
         x = read_twitter_raw_data('tests/raw_data.txt')
         expected_index, expected_e_values = _read_twitter_test_result('tests/expected_onlylast.txt')
-        index, e_values = detect_anoms(x, 1440, max_anoms=0.02, direction='both', only_last=True, e_value=True)
+        index, e_values = detect_anoms(x, 1440, max_anoms=0.02, direction='both', only_last=1440, e_value=True)
         self.assertListEqual(expected_index, index)
         self.assertListEqual(expected_e_values, e_values)
 
@@ -139,7 +139,7 @@ class TestDetectAnoms(unittest.TestCase):
         x = read_twitter_raw_data('tests/raw_data.txt')
         expected_index, expected_e_values = _read_twitter_test_result('tests/expected_longterm_onlylast.txt')
         index, e_values = detect_anoms(x, 1440, max_anoms=0.02, direction='both', longterm_period=1440 * 7,
-                                       only_last=True, e_value=True)
+                                       only_last=1440, e_value=True)
         self.assertListEqual(expected_index, index)
         self.assertListEqual(expected_e_values, e_values)
 
@@ -151,3 +151,30 @@ class TestDetectAnoms(unittest.TestCase):
         x = [1] * 1000
         x[999] = np.nan
         self.assertRaises(ValueError, detect_anoms, x, 14)
+
+
+class TestAnomWithBreakout(unittest.TestCase):
+    def setUp(self):
+        # A breakout happened in the position 33:
+        self.data = read_twitter_raw_data('tests/anom_breakout_data.txt')
+
+    def test_anom_without_breakout(self):
+        # when the breakout just happened, reports it as anomaly, which is correct.
+        ret = detect_anoms(self.data[3:33], 7, max_anoms=0.01, only_last=1)
+        self.assertEqual([29], ret)
+        # after the time windows moved forward, still reports the last data is anomaly, which is bad.
+        ret = detect_anoms(self.data[8:38], 7, max_anoms=0.01, only_last=1)
+        self.assertEqual([29], ret)
+        ret = detect_anoms(self.data[12:42], 7, max_anoms=0.01, only_last=1)
+        self.assertEqual([29], ret)
+
+    def test_anom_with_breakout(self):
+        breakout_kwargs = {'min_size': 7, 'method': 'multi', 'beta': 0.008}
+        # when the breakout just happened, reports it as anomaly, which is correct.
+        ret = detect_anoms(self.data[3:33], 7, max_anoms=0.01, only_last=1, breakout_kwargs=breakout_kwargs)
+        self.assertEqual([29], ret)
+        # after the time window moved forward, detects the breakout and stops reporting the last point as anomaly.
+        ret = detect_anoms(self.data[8:38], 7, max_anoms=0.01, only_last=1, breakout_kwargs=breakout_kwargs)
+        self.assertEqual([], ret)
+        ret = detect_anoms(self.data[12:42], 7, max_anoms=0.01, only_last=1, breakout_kwargs=breakout_kwargs)
+        self.assertEqual([], ret)
