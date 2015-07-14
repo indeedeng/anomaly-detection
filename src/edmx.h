@@ -5,6 +5,6 @@
 
 using namespace std;
 
-extern "C" EDMResult EDMX(vector<double>& Z, int min_size, double beta, int degree);
+extern "C" EDMResult EDMX(vector<double>& Z, int min_size, double alpha);
 
 #endif

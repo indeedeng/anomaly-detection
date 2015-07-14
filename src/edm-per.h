@@ -4,6 +4,6 @@
 
 using namespace std;
 
-extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size, double beta, int degree);
+extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size, double percent, int degree);
 
 #endif

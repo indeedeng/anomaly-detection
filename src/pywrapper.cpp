@@ -1,5 +1,6 @@
 #include<Python.h>
 #include<vector>
+#include<iostream>
 #include"edm-multi.h"
 #include"edm-per.h"
 #include"edmTail.h"
@@ -49,33 +50,32 @@ static PyObject* EDM_multi_wrapper(PyObject *self, PyObject *args) {
 static PyObject* EDM_percent_wrapper(PyObject *self, PyObject *args) {
     PyObject *pyList;
     int min_size;
-    double beta;
+    double percent;
     int degree;
-    PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &beta, &degree);
+    PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &percent, &degree);
     vector<double> Z = to_vector(pyList);
-    vector<int> ret = EDM_percent(Z, min_size, beta, degree);
+    vector<int> ret = EDM_percent(Z, min_size, percent, degree);
     return to_pylist(ret);
 }
 
 static PyObject* EDM_tail_wrapper(PyObject *self, PyObject *args) {
     PyObject *pyList;
     int min_size;
-    double beta;
-    int degree;
-    PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &beta, &degree);
+    double alpha;
+    double quant;
+    PyArg_ParseTuple(args, "Oidd", &pyList, &min_size, &alpha, &quant);
     vector<double> Z = to_vector(pyList);
-    EDMResult ret = EDM_tail(Z, min_size, beta, degree);
+    EDMResult ret = EDM_tail(Z, min_size, alpha, quant);
     return to_pytuple(ret.best_loc, ret.best_stat);
 }
 
 static PyObject* EDM_x_wrapper(PyObject *self, PyObject *args) {
     PyObject *pyList;
     int min_size;
-    double beta;
-    int degree;
-    PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &beta, &degree);
+    double alpha;
+    PyArg_ParseTuple(args, "Oid", &pyList, &min_size, &alpha);
     vector<double> Z = to_vector(pyList);
-    EDMResult ret = EDMX(Z, min_size, beta, degree);
+    EDMResult ret = EDMX(Z, min_size, alpha);
     return to_pytuple(ret.best_loc, ret.best_stat);
 }
 
