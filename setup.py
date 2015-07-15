@@ -25,7 +25,7 @@ setup(
     name="anomaly-detection",
     version="0.0.1",
     description="A python implementation of https://github.com/twitter/AnomalyDetection",
-    py_modules=['anoms'],
+    py_modules=['anoms', 'breakout'],
     install_requires=[
         'pandas>=0.12.0',
         'scipy>=0.15.1',
