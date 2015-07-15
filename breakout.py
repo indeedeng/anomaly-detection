@@ -59,7 +59,7 @@ def detect_breakout(z, min_size=30, method='amoc', alpha=2, exact=True, sig_leve
     distance = z_max - z_min
     if distance == 0:
         return []
-    z = [(value - z_min) / distance for value in z]
+    z = [float(value - z_min) / distance for value in z]
     if not multi:
         if exact:
             if logger.isEnabledFor(logging.DEBUG):

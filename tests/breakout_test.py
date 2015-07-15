@@ -76,3 +76,9 @@ class TestBreakoutDetection(unittest.TestCase):
         self.data[10] = np.nan
         self.assertRaises(ValueError, detect_breakout, self.data, min_size=30,
                           method='amoc', exact=False, sig_level=0.001, nperm=10)
+
+    def test_int_values(self):
+        # make sure the code still works if the values are int.
+        z = [int(value) for value in self.data]
+        ret_list = detect_breakout(z, min_size=24, method='multi', beta=0.001, degree=1)
+        self.assertEqual([47, 87], ret_list)
