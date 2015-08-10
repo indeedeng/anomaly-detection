@@ -60,47 +60,64 @@ def detect_breakout(z, min_size=30, method='amoc', alpha=2, exact=True, sig_leve
     if distance == 0:
         return []
     z = [float(value - z_min) / distance for value in z]
-    if not multi:
+    if multi:
+        return _detect_multiple_breakout(z, min_size, beta, percent, degree)
+    else:
+        ret = _detect_single_breakout(z, min_size, exact, alpha, nperm, sig_level)
+        if ret is None:
+            return []
+        else:
+            return [ret]
+
+
+def _detect_multiple_breakout(z, min_size, beta, percent, degree):
+    if beta is None:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("calling edm_percent")
+        return edm_percent(z, min_size, percent, degree)
+    else:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("calling edm_multi")
+        return edm_multi(z, min_size, beta, degree)
+
+
+def _detect_single_breakout(z, min_size, exact, alpha, nperm, sig_level):
+    if exact:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("calling edm_x")
+        ret, stat = edm_x(z, min_size, alpha)
+    else:
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("calling edm_tail")
+        ret, stat = edm_tail(z, min_size, alpha, _EDM_TAIL_QUANT)
+    if nperm == 0:
+        return ret
+    else:
+        p_val = _permutation_test(z, min_size, stat, exact, alpha, nperm)
+        if p_val > sig_level:
+            return None
+        else:
+            return ret
+
+
+def _permutation_test(z, min_size, stat, exact, alpha, nperm):
+    over = 1
+    for i in range(0, nperm):
+        z_perm = list(np.random.permutation(z))
         if exact:
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("calling edm_x")
-            ret, stat = edm_x(z, min_size, alpha)
+                logger.debug("calling edm_x for nperm %s" % i)
+            _, stat_perm = edm_x(z_perm, min_size, alpha)
         else:
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("calling edm_tail")
-            ret, stat = edm_tail(z, min_size, alpha, _EDM_TAIL_QUANT)
-        if nperm == 0:
-            ret_list = [ret]
-        else:
-            over = 1
-            for i in range(0, nperm):
-                z_perm = list(np.random.permutation(z))
-                if exact:
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug("calling edm_x for nperm %s" % i)
-                    _, stat_perm = edm_x(z_perm, min_size, alpha)
-                else:
-                    if logger.isEnabledFor(logging.DEBUG):
-                        logger.debug("calling edm_tail for nperm %s" % i)
-                    _, stat_perm = edm_tail(z_perm, min_size, alpha, _EDM_TAIL_QUANT)
-                if stat_perm > stat:
-                    over += 1
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug("over=%s, stat_perm=%s, stat=%s" % (over, stat_perm, stat))
-            p_val = float(over) / (nperm + 1)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("over=%s, p_val=%s" % (over, p_val))
-            if p_val > sig_level:
-                ret_list = []
-            else:
-                ret_list = [ret]
-    else:
-        if beta is None:
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("calling edm_percent")
-            ret_list = edm_percent(z, min_size, percent, degree)
-        else:
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("calling edm_multi")
-            ret_list = edm_multi(z, min_size, beta, degree)
-    return ret_list
+                logger.debug("calling edm_tail for nperm %s" % i)
+            _, stat_perm = edm_tail(z_perm, min_size, alpha, _EDM_TAIL_QUANT)
+        if stat_perm > stat:
+            over += 1
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("over=%s, stat_perm=%s, stat=%s" % (over, stat_perm, stat))
+    p_val = float(over) / (nperm + 1)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("over=%s, p_val=%s" % (over, p_val))
+    return p_val
+
