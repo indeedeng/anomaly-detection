@@ -2,8 +2,7 @@
 #define _EDM_MULTI_
 #include<vector>
 
-using namespace std;
 
-extern "C" vector<int> EDM_multi(const vector<double>& Z, int min_size, double beta, int degree);
+extern "C" std::vector<int> EDM_multi(const std::vector<double>& Z, const int min_size, double beta, const int degree);
 
 #endif

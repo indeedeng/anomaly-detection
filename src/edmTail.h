@@ -3,8 +3,7 @@
 #include<vector>
 #include"helper.h"
 
-using namespace std;
 
-extern "C" EDMResult EDM_tail(vector<double>& Z, int min_size, double alpha, double quant);
+extern "C" EDMResult EDM_tail(std::vector<double>& Z, const int min_size, const double alpha, const double quant);
 
 #endif

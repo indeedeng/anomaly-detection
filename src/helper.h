@@ -5,21 +5,20 @@
 #include<algorithm>
 #include<cmath>
 
-using namespace std;
 
-double get_median(const multiset<double>&, const multiset<double, std::greater<double> >&);
-void insert_element(multiset<double>&, multiset<double, std::greater<double> >&, double);
-void remove_element(multiset<double>&, multiset<double, std::greater<double> >&, double);
+double get_median(std::multiset<double>&, std::multiset<double, std::greater<double> >&);
+void insert_element(std::multiset<double>&, std::multiset<double, std::greater<double> >&, const double);
+void remove_element(std::multiset<double>&, std::multiset<double, std::greater<double> >&, const double);
 
-extern double Linear(double x);
-extern double Const(double x);
-extern double Quadratic(double x);
+extern double Linear(const double x);
+extern double Const(const double x);
+extern double Quadratic(const double x);
 
 class EDMResult {
 public:
     int best_loc;
     double best_stat;
-    EDMResult(int, double);
+    EDMResult(const int, const double);
 };
 
 #endif

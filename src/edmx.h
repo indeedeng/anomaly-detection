@@ -3,8 +3,7 @@
 #include<vector>
 #include"helper.h"
 
-using namespace std;
 
-extern "C" EDMResult EDMX(vector<double>& Z, int min_size, double alpha);
+extern "C" EDMResult EDMX(const std::vector<double>& Z, const int min_size, const double alpha);
 
 #endif

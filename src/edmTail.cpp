@@ -8,12 +8,10 @@ This version calculates the between distance using the delta points around the c
 #include<vector>
 #include"helper.h"
 
-using namespace std;
-
 //Class used to hold all the information about the
 //breakout location and the interval trees
 struct Information{
-	vector<double> A, B, AB;
+	std::vector<double> A, B, AB;
 	double best_stat;
 	int best_loc, best_t2;
 	int min_size, b;
@@ -22,9 +20,9 @@ struct Information{
 };
 
 Information::Information(int bb, int m){
-	A = vector<double>(1<<(bb+1));
-	B = vector<double>(1<<(bb+1));
-	AB = vector<double>(1<<(bb+1));
+	A = std::vector<double>(1<<(bb+1));
+	B = std::vector<double>(1<<(bb+1));
+	AB = std::vector<double>(1<<(bb+1));
 	b = bb;
 	best_stat = best_loc = best_t2 = -3;
 	min_size = m;
@@ -36,15 +34,15 @@ Information::Information(int bb, int m){
 	std::cout<<"best_loc: "<<info.best_loc<<std::endl;
 }*/
 
-void BackwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant, double alpha);
-void ForwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant, double alpha);
+void BackwardUpdate(std::vector<double>& Z, Information& info, int& tau1, double quant, double alpha);
+void ForwardUpdate(std::vector<double>& Z, Information& info, int& tau1, double quant, double alpha);
 
 int GetIndex(int B, double x){
 	//Get index of leaf node interval containing x
 	return (int)std::ceil(std::abs(x) * (1<<B)) + (1<<B) - 1;
 }
 
-double GetQuantile(vector<double>& x, double quant){
+double GetQuantile(std::vector<double>& x, double quant){
 	//Return approximate quantile based on the interval tree
 
 	int N = x.size();
@@ -77,9 +75,9 @@ double GetQuantile(vector<double>& x, double quant){
 	return quant*(u-l)+l;
 }
 
-vector<int> AddToTree(int B, vector<double>& x){
-	vector<int> A(1<<(B+1));
-	vector<double>::iterator i;
+std::vector<int> AddToTree(int B, std::vector<double>& x){
+	std::vector<int> A(1<<(B+1));
+	std::vector<double>::iterator i;
 	for(i = x.begin(); i < x.end(); ++i){//Iterage over items we wish to add to the tree
 		int index = GetIndex(B,*i);
 		while(index){
@@ -91,7 +89,7 @@ vector<int> AddToTree(int B, vector<double>& x){
 }
 
 // [[Rcpp::export]]
-extern "C" EDMResult EDM_tail(vector<double>& Z, int min_size=24, double alpha=2, double quant=0.5){
+extern "C" EDMResult EDM_tail(std::vector<double>& Z, const int min_size=24, const double alpha=2, const double quant=0.5){
 
 	int N = Z.size();
 	int eps = (int)std::ceil( std::log(N) );
@@ -187,7 +185,7 @@ extern "C" EDMResult EDM_tail(vector<double>& Z, int min_size=24, double alpha=2
 	return EDMResult(info.best_loc, info.best_stat);
 }
 
-void ForwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant, double alpha){
+void ForwardUpdate(std::vector<double>& Z, Information& info, int& tau1, double quant, double alpha){
 	
 	int min_size = info.min_size;
 	int tau2 = tau1 + min_size;
@@ -287,7 +285,7 @@ void ForwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant
 	}
 }
 
-void BackwardUpdate(vector<double>& Z, Information& info, int& tau1, double quant, double alpha){
+void BackwardUpdate(std::vector<double>& Z, Information& info, int& tau1, double quant, double alpha){
 
 	int min_size = info.min_size;
 	int tau2 = tau1 + min_size;

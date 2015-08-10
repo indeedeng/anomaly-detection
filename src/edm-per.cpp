@@ -10,10 +10,8 @@
 #include<cmath>
 #include"helper.h"
 
-using namespace std;
-
 // [[Rcpp::export]]
-extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size=24, double percent=0, int degree=0){
+extern "C" std::vector<int> EDM_percent(const std::vector<double>& Z, const int min_size=24, const double percent=0, const int degree=0){
 //Z: time series
 //min_size: minimum segment size
 //beta: penalization term for the addition of a change point
@@ -31,15 +29,15 @@ extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size=24, dou
 
 	int n = Z.size();
 	
-	vector<int> prev(n+1,0);//store optimal location of previous change point
-	vector<int> number(n+1,0);//store the number of change points in optimal segmentation
-	vector<double> F(n+1,0);//store optimal statistic value
+	std::vector<int> prev(n+1,0);//store optimal location of previous change point
+	std::vector<int> number(n+1,0);//store the number of change points in optimal segmentation
+	std::vector<double> F(n+1,0);//store optimal statistic value
 	//F[s] is calculated using observations { Z[0], Z[1], ..., Z[s-1] }
 
 	//trees used to store the "upper half" of the considered observations
-	multiset<double> right_min, left_min;
+	std::multiset<double> right_min, left_min;
 	//trees used to store the "lower half" of the considered observations
-	multiset<double, std::greater<double> > right_max, left_max;
+	std::multiset<double, std::greater<double> > right_max, left_max;
 
 	//Iterate over possible locations for the last change
 	for(int s=2*min_size; s<n+1; ++s){
@@ -92,7 +90,7 @@ extern "C" vector<int> EDM_percent(const vector<double>& Z, int min_size=24, dou
 	}
 
 	//obtain list of optimal change point estimates
-	vector<int> ret;
+	std::vector<int> ret;
 	int at = n;
 	while(at){
 		if(prev[at])//don't insert 0 as a change point estimate

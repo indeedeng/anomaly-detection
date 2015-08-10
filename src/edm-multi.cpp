@@ -4,14 +4,12 @@
 #include<cmath>
 #include"helper.h"
 
-using namespace std;
-
 //Z: time series
 //min_size: minimum segment size
 //beta: penalization term for the addition of a change point
 
 // [[Rcpp::export]]
-extern "C" vector<int> EDM_multi(const vector<double>& Z, int min_size=24, double beta=0, int degree=0){
+extern "C" std::vector<int> EDM_multi(const std::vector<double>& Z, const int min_size=24, double beta=0, const int degree=0){
 
 	//identify which type of penalization to use
 	double (*G)(double);
@@ -27,15 +25,15 @@ extern "C" vector<int> EDM_multi(const vector<double>& Z, int min_size=24, doubl
 	int n = Z.size();
 	if(beta < 0)//assume that beta is a positive number
 		beta = -beta;
-	vector<int> prev(n+1,0);//store optimal location of previous change point
-	vector<int> number(n+1,0);//store the number of change points in optimal segmentation
-	vector<double> F(n+1,-3);//store optimal statistic value
+	std::vector<int> prev(n+1,0);//store optimal location of previous change point
+	std::vector<int> number(n+1,0);//store the number of change points in optimal segmentation
+	std::vector<double> F(n+1,-3);//store optimal statistic value
 	//F[s] is calculated using observations { Z[0], Z[1], ..., Z[s-1] }
 
 	//trees used to store the "upper half" of the considered observations
-	multiset<double> right_min, left_min;
+	std::multiset<double> right_min, left_min;
 	//trees used to store the "lower half" of the considered observations
-	multiset<double, std::greater<double> > right_max, left_max;
+	std::multiset<double, std::greater<double> > right_max, left_max;
 
 	//Iterate over possible locations for the last change
 	for(int s=2*min_size; s<n+1; ++s){
@@ -80,7 +78,7 @@ extern "C" vector<int> EDM_multi(const vector<double>& Z, int min_size=24, doubl
 	}
 
 	//obtain list of optimal change point estimates
-	vector<int> ret;
+	std::vector<int> ret;
 	int at = n;
 	while(at){
 		if(prev[at])//don't insert 0 as a change point estimate

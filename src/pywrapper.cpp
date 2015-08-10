@@ -5,11 +5,10 @@
 #include"edmTail.h"
 #include"edmx.h"
 
-using namespace std;
 
-vector<double> to_vector(PyObject *pyList) {
+std::vector<double> to_vector(PyObject *pyList) {
     Py_ssize_t list_len = PyList_Size(pyList);
-    vector<double> valueVector;
+    std::vector<double> valueVector;
     for(Py_ssize_t i=0; i<list_len; i++) {
         PyObject *pyItem = PyList_GetItem(pyList, i);
         double value = PyFloat_AsDouble(pyItem);
@@ -18,7 +17,7 @@ vector<double> to_vector(PyObject *pyList) {
     return valueVector;
 }
 
-PyObject* to_pylist(vector<int> &ret) {
+PyObject* to_pylist(std::vector<int> &ret) {
     int ret_len = ret.size();
     PyObject *pyRetList = PyList_New(ret_len);
     for(int i=0; i<ret_len; i++) {
@@ -41,8 +40,8 @@ static PyObject* EDM_multi_wrapper(PyObject *self, PyObject *args) {
     double beta;
     int degree;
     PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &beta, &degree);
-    vector<double> Z = to_vector(pyList);
-    vector<int> ret = EDM_multi(Z, min_size, beta, degree);
+    std::vector<double> Z = to_vector(pyList);
+    std::vector<int> ret = EDM_multi(Z, min_size, beta, degree);
     return to_pylist(ret);
 }
 
@@ -52,8 +51,8 @@ static PyObject* EDM_percent_wrapper(PyObject *self, PyObject *args) {
     double percent;
     int degree;
     PyArg_ParseTuple(args, "Oidi", &pyList, &min_size, &percent, &degree);
-    vector<double> Z = to_vector(pyList);
-    vector<int> ret = EDM_percent(Z, min_size, percent, degree);
+    std::vector<double> Z = to_vector(pyList);
+    std::vector<int> ret = EDM_percent(Z, min_size, percent, degree);
     return to_pylist(ret);
 }
 
@@ -63,7 +62,7 @@ static PyObject* EDM_tail_wrapper(PyObject *self, PyObject *args) {
     double alpha;
     double quant;
     PyArg_ParseTuple(args, "Oidd", &pyList, &min_size, &alpha, &quant);
-    vector<double> Z = to_vector(pyList);
+    std::vector<double> Z = to_vector(pyList);
     EDMResult ret = EDM_tail(Z, min_size, alpha, quant);
     return to_pytuple(ret.best_loc, ret.best_stat);
 }
@@ -73,7 +72,7 @@ static PyObject* EDM_x_wrapper(PyObject *self, PyObject *args) {
     int min_size;
     double alpha;
     PyArg_ParseTuple(args, "Oid", &pyList, &min_size, &alpha);
-    vector<double> Z = to_vector(pyList);
+    std::vector<double> Z = to_vector(pyList);
     EDMResult ret = EDMX(Z, min_size, alpha);
     return to_pytuple(ret.best_loc, ret.best_stat);
 }
