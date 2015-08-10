@@ -35,69 +35,39 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
     if max_anoms > 0.49 or max_anoms <= 0:
         raise ValueError("max_anoms must be >0 and <= 0.49")
     if alpha <= 0:
-        raise ValueError("alpah must greater than 0.")
+        raise ValueError("alpha must greater than 0.")
     if longterm_period is None:
         longterm_period = len(x)
     for v in x:
         if np.isnan(v):
             raise ValueError("data contains NaN value.")
     ret = set()
+    e_values = None
     if e_value:
         e_values = [None] * len(x)  # To keep the expected values when e_value is set.
-    for period_start in xrange(0, len(x), longterm_period):
-        period_end = min(len(x), period_start + longterm_period)
+    for window_start in xrange(0, len(x), longterm_period):
+        # If the data is too long, split the data into smaller windows, and do the anomaly detection on each window.
+        window_end = min(len(x), window_start + longterm_period)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("Start to process longterm period: period_start=%s, period_end=%s" %
-                         (period_start, period_end))
-        if period_end - period_start < longterm_period:
-            period_start = period_end - longterm_period
+            logger.debug("Start to process window: window_start=%s, window_end=%s" %
+                         (window_start, window_end))
+        # If the window size doesn't divide the total size, the last window doesn't have enough data.
+        # In this case, adjust the start position of last window to make it having same size as previous windows.
+        if window_end - window_start < longterm_period:
+            window_start = window_end - longterm_period
             if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("The last longterm period doesn't contain enough length of data. "
-                             "Adjusted the starting index. period_start=%s, period_end=%s" % (period_start, period_end))
-        period_x = x[period_start:period_end]
-        if len(period_x) < period * 2:
+                logger.debug("The last window doesn't contain enough length of data. "
+                             "Adjusted the starting index. window_start=%s, window_end=%s" % (window_start, window_end))
+        window_x = x[window_start:window_end]
+        if len(window_x) < period * 2:
             raise ValueError("Anom detection needs at least 2 periods worth of data.")
-        # The core part of anomaly detection:
-        # 1. Use STL to perform seasonal decomposition.
-        # parameters are copied from R's stl()
-        stl_ret = stl(period_x, np=period, ns=len(period_x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
-        # 2. Calculate residuals using seasonal from STL result and median as the trends.
-        seasons = stl_ret['seasonal']
-        if e_value:  # store the expected values if e_value is set
-            trends = stl_ret['trend']
-            for i in range(0, len(period_x)):
-                if e_values[period_start + i] is None:
-                    e_values[period_start + i] = floor(seasons[i] + trends[i])
-        if breakout_kwargs:
-            trends = _get_trends_by_breakout_detection(x, breakout_kwargs)
-        else:
-            trends = _get_trends_by_median(period_x)
-        residuals = [period_x[i] - seasons[i] - trends[i] for i in range(0, len(period_x))]
-        # 3. Use ESD to find out outliers from residuals. These outliers' corresponding values in x are the anomalies
-        max_anom_num = max(1, int(len(period_x) * max_anoms))
-        anom_index = _esd(residuals, max_anom_num, alpha, direction=direction)
-        for anom_i in anom_index:
-            ret.add(period_start + anom_i)  # convert the index to the index in x
-        # Post processing. Filter out some detected anomalies according to the parameters.
+        window_ret = _detect_anomaly_for_one_window(window_x, period, max_anoms, alpha, direction, e_values,
+                                                    window_start, breakout_kwargs)
         if threshold:
-            # The threshold is calculated from the max values of each period.
-            period_maxs = []
-            for i in xrange(0, len(period_x), period):
-                period_maxs.append(max(period_x[i: min(len(period_x), i + period)]))
-            if threshold == 'med_max':
-                thresh = np.median(period_maxs)
-            elif threshold == 'p95':
-                thresh = np.percentile(period_maxs, 95)
-            elif threshold == 'p99':
-                thresh = np.percentile(period_maxs, 99)
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("threshold is True. threshold=%s, thresh=%s" % (threshold, thresh))
-            ret = set(filter(lambda index: x[index] >= thresh, ret))
-        if only_last:
-            last_period_start = len(x) - only_last
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("only_last is True. Will remove all anomalies before index %s." % last_period_start)
-            ret = set(filter(lambda value: value >= last_period_start, ret))
+            window_ret = _post_processing_threshold(window_x, period, window_ret, threshold)
+        ret = ret.union(window_ret)
+    if only_last:
+        ret = _post_processing_only_last(x, ret, only_last)
     ret = sorted(ret)
     if e_value:
         return ret, map(lambda i: e_values[i], ret)
@@ -111,6 +81,7 @@ def _get_trends_by_median(x):
 
 
 def _get_trends_by_breakout_detection(x, kwargs):
+    # divide the data into parts using breakout detection, using the median of each part as the trend.
     ret_list = detect_breakout(x, **kwargs)
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("detect_breakout result: %s" % ret_list)
@@ -126,6 +97,59 @@ def _get_trends_by_breakout_detection(x, kwargs):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug("detect_breakout trends: %s length=%s" % (trends, len(trends)))
     return trends
+
+
+def _detect_anomaly_for_one_window(x, period, max_anoms, alpha, direction, e_values, window_start, breakout_kwargs):
+    # The core part of anomaly detection:
+    # 1. Use STL to perform seasonal decomposition.
+    # parameters are copied from R's stl()
+    stl_ret = stl(x, np=period, ns=len(x) * 10 + 1, isdeg=0, robust=True, ni=1, no=15)
+    # 2. Calculate residuals using seasonal from STL result and median as the trends.
+    seasons = stl_ret['seasonal']
+    if e_values:  # store the expected values if e_value is set
+        trends = stl_ret['trend']
+        for i in range(0, len(x)):
+            if e_values[window_start + i] is None:
+                e_values[window_start + i] = floor(seasons[i] + trends[i])
+    if breakout_kwargs:
+        trends = _get_trends_by_breakout_detection(x, breakout_kwargs)
+    else:
+        trends = _get_trends_by_median(x)
+    residuals = [x[i] - seasons[i] - trends[i] for i in range(0, len(x))]
+    # 3. Use ESD to find out outliers from residuals. These outliers' corresponding values in x are the anomalies
+    max_anom_num = max(1, int(len(x) * max_anoms))
+    anom_index = _esd(residuals, max_anom_num, alpha, direction=direction)
+    ret = set()
+    for anom_i in anom_index:
+        ret.add(window_start + anom_i)  # convert the index to the index in x
+    return ret
+
+
+def _post_processing_threshold(x, period, ret, threshold):
+    # The threshold is calculated from the max values of each window.
+    period_maxs = []
+    for i in xrange(0, len(x), period):
+        period_maxs.append(max(x[i: min(len(x), i + period)]))
+    thresh = 0
+    if threshold == 'med_max':
+        thresh = np.median(period_maxs)
+    elif threshold == 'p95':
+        thresh = np.percentile(period_maxs, 95)
+    elif threshold == 'p99':
+        thresh = np.percentile(period_maxs, 99)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("threshold is True. threshold=%s, thresh=%s" % (threshold, thresh))
+    ret = set(filter(lambda index: x[index] >= thresh, ret))
+    return ret
+
+
+def _post_processing_only_last(x, ret, only_last):
+    last_period_start = len(x) - only_last
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("only_last is set. Will remove all anomalies before index %s." % last_period_start)
+    ret = set(filter(lambda value: value >= last_period_start, ret))
+    return ret
+
 
 _MAD_CONSTANT = 1.4826  # a magic number copied from R's mad() function
 
