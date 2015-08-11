@@ -71,8 +71,7 @@ def detect_anoms(x, period, max_anoms=0.10, alpha=0.05, direction='both', longte
     ret = sorted(ret)
     if e_value:
         return ret, map(lambda i: e_values[i], ret)
-    else:
-        return ret
+    return ret
 
 
 def _get_trends_by_median(x):

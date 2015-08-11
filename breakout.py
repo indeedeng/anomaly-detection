@@ -64,10 +64,7 @@ def detect_breakout(z, min_size=30, method='amoc', alpha=2, exact=True, sig_leve
         return _detect_multiple_breakout(z, min_size, beta, percent, degree)
     else:
         ret = _detect_single_breakout(z, min_size, exact, alpha, nperm, sig_level)
-        if ret is None:
-            return []
-        else:
-            return [ret]
+        return [ret] if ret is not None else []
 
 
 def _detect_multiple_breakout(z, min_size, beta, percent, degree):
@@ -75,10 +72,9 @@ def _detect_multiple_breakout(z, min_size, beta, percent, degree):
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("calling edm_percent")
         return edm_percent(z, min_size, percent, degree)
-    else:
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("calling edm_multi")
-        return edm_multi(z, min_size, beta, degree)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("calling edm_multi")
+    return edm_multi(z, min_size, beta, degree)
 
 
 def _detect_single_breakout(z, min_size, exact, alpha, nperm, sig_level):
@@ -92,12 +88,8 @@ def _detect_single_breakout(z, min_size, exact, alpha, nperm, sig_level):
         ret, stat = edm_tail(z, min_size, alpha, _EDM_TAIL_QUANT)
     if nperm == 0:
         return ret
-    else:
-        p_val = _permutation_test(z, min_size, stat, exact, alpha, nperm)
-        if p_val > sig_level:
-            return None
-        else:
-            return ret
+    p_val = _permutation_test(z, min_size, stat, exact, alpha, nperm)
+    return ret if p_val <= sig_level else None
 
 
 def _permutation_test(z, min_size, stat, exact, alpha, nperm):
