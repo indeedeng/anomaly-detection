@@ -30,7 +30,7 @@ setup(
         'pandas>=0.12.0',
         'scipy>=0.15.1',
         'numpy>=1.9.2',
-        'pyloess==0.0.0'
+        'pyloess'
     ],
     dependency_links=[
         'https://github.com/andreas-h/pyloess/tarball/7415090e00c3987eecc44be2efcfbdaf038656e0#egg=pyloess-0.0.0'
