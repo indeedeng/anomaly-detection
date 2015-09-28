@@ -1,14 +1,8 @@
 *.pyc
 *~
 *.iml
-/venv*
-/proj/settings/local.py
-/conf/dev.properties
-start.sh
-.coverage
-htmlcov/
-coverage.xml
 build/
 dist/
 *.egg-info/
-requirements.dev
+*.so
+*.swp
