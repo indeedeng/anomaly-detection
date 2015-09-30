@@ -1,8 +1,15 @@
 # AnomalyDetection and BreakoutDetection in python
 This is a python implementation of Twitter's AnomalyDetection and BreakoutDetection.
 
-## Usage
+## Install
 The dependencies contain C++ and Fortran code, so that you need gcc installed.
+Checkout the code, enter the folder and run:
+```
+pip install -r requirements.txt
+```
+When use this as a library, please include the line for "pyloess" from "requirements.txt" in your "requirements.txt".
+
+## Usage
 The parameters are the same as the AnomalyDetectionVec in Twitter's AnomalyDetection (except the plot related ones).
 You need to put your time series data into a list of float numbers:
 ```

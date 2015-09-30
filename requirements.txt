@@ -1,0 +1,2 @@
+-e git+git://github.com/andreas-h/pyloess.git@7415090e00c3987eecc44be2efcfbdaf038656e0#egg=pyloess-master
+-e .
