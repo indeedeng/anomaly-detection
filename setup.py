@@ -30,7 +30,7 @@ setup(
         'pandas>=0.12.0',
         'scipy>=0.15.1',
         'numpy>=1.9.2',
-        'pyloess-master'
+        'pyloess'
     ],
     long_description=read('README.md'),
     ext_modules=[module]
